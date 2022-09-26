@@ -1,0 +1,118 @@
+/*******************************************************************************
+*
+* McStas, neutron ray-tracing package
+*         Copyright (C) 1997-2007, All rights reserved
+*         Risoe National Laboratory, Roskilde, Denmark
+*         Institut Laue Langevin, Grenoble, France
+*
+* Component: Slit_radial_multi
+*
+* %I
+* Written by: Gregory Tucker
+* Date: Aug. 30th 2022
+* Origin: <a href="http://www.ess.eu">ESS</a>
+* Multiple infinitly thin slits at a constant radius from the origin.
+*
+* %End
+*******************************************************************************/
+
+DEFINE COMPONENT Slit_radial_multi
+SETTING PARAMETERS (
+  radius=0,
+  int number=1,
+  slit_width=0,
+  slit_spacing=0,
+  height=0,
+  offset=0,
+  int slit=-1
+)
+OUTPUT PARAMETERS ()
+SHARE 
+%{
+%}
+DECLARE
+%{
+  double* slits;
+%}
+INITIALIZE
+%{
+  if (slit_width <= 0) printf("Slit_radial_multi: %s: ERROR: Positive slit_width required!\n", NAME_CURRENT_COMP);
+  if (height <= 0) printf("Slit_radial_multi: %s: ERROR: Positive height required!\n", NAME_CURRENT_COMP);
+  if (radius <= 0) printf("Slit_radial_multi: %s: ERROR: Positive radius required!\n", NAME_CURRENT_COMP); 
+  if (number < 1) number = 1;
+  if (slit_spacing <= 0 && number>1) printf("Slit_radial_multi: %s: ERROR: Positive slit_spacing required for multiple slits!\n", NAME_CURRENT_COMP);  
+  
+  
+  slits = calloc((int)number, sizeof(double));
+  
+  if (!slits)
+    printf("Slit_radial_multi: %s: ERROR: Unable to allocate memory for slit centers\n", NAME_CURRENT_COMP);
+    
+  for (int i=0; i<number; ++i){
+    slits[i] = fmod(offset + i * slit_spacing, 2*PI);
+  }
+%}
+TRACE
+%{
+  double tin, tout;
+  int slit_intersect = -1;
+  int valid_intersect = 0;
+  int flag = cylinder_intersect(&tin, &tout, x, y, z, vx, vy, vz, radius, height);
+  if (flag > 1){
+    // the incoming or outgoing time passes through an endcap
+    // but we only have crystals on the cyllinder side
+    if (fabs(y + tin * vy) >= height/2) tin = tout;
+    if (fabs(y + tout * vy) >= height/2) tout = tin;
+  }
+  if (flag) {
+    if (tin < 0 && tout > 0) tin = t; // we needn't go back in time
+    if (tout < 0 && tin > 0) tout = t; // is this even possible?
+  }
+  if (flag && tout > t && fabs(y + tout * vy) < height/2) {
+    // find out which slit is intersected:
+    double th = atan2(x + tout * vx, z + tout * vz);
+    // verify that the final position is at distance radii_xz[v]?
+    for (int i=0; i<number; ++i){
+      if (fabs(fmod(slits[i] - th, 2*PI)) < slit_width/2.){
+        slit = i;
+        valid_intersect = 1;
+      }
+      if (valid_intersect) break;
+    }
+  }
+  if (valid_intersect) {
+    SCATTER;
+  } else {
+    ABSORB;
+  }
+%}
+FINALLY
+%{
+  if (slits) free(slits);
+%}
+
+MCDISPLAY
+%{
+  double n = 0;
+  double ya = -height/2.;
+  double yb = height/2.;
+  circle("xz", n, ya, n, radius);
+  circle("xz", n, yb, n, radius);
+  double xa, xb, za, zb;
+  for (int i=0; i<number; ++i){
+    xa = radius * sin(slits[i] + slit_width/2);
+    xb = radius * sin(slits[i] - slit_width/2);
+    za = radius * cos(slits[i] + slit_width/2);
+    zb = radius * cos(slits[i] - slit_width/2);
+    multiline(5, xa, ya, za,  xa, yb, za,  xb, yb, zb,  xb, ya, zb,  xa, ya, za);
+  }
+  for (int i=1; i<number; ++i){
+    xa = radius * sin(slits[i-1] + slit_width/2);
+    xb = radius * sin(slits[i] - slit_width/2);
+    za = radius * cos(slits[i-1] + slit_width/2);
+    zb = radius * cos(slits[i] - slit_width/2);
+    multiline(4, xa, ya, za,  xb, yb, zb,  xb, ya, zb,  xa, yb, za);
+  }
+%}
+
+END
