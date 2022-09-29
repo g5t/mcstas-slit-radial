@@ -93,26 +93,34 @@ FINALLY
 
 MCDISPLAY
 %{
-  double n = 0;
   double ya = -height/2.;
   double yb = height/2.;
-  circle("xz", n, ya, n, radius);
-  circle("xz", n, yb, n, radius);
-  double xa, xb, za, zb;
-  for (int i=0; i<number; ++i){
-    xa = radius * sin(slits[i] + slit_width/2);
-    xb = radius * sin(slits[i] - slit_width/2);
-    za = radius * cos(slits[i] + slit_width/2);
-    zb = radius * cos(slits[i] - slit_width/2);
-    multiline(5, xa, ya, za,  xa, yb, za,  xb, yb, zb,  xb, ya, zb,  xa, ya, za);
-  }
-  for (int i=1; i<number; ++i){
-    xa = radius * sin(slits[i-1] + slit_width/2);
-    xb = radius * sin(slits[i] - slit_width/2);
-    za = radius * cos(slits[i-1] + slit_width/2);
-    zb = radius * cos(slits[i] - slit_width/2);
-    multiline(4, xa, ya, za,  xb, yb, zb,  xb, ya, zb,  xa, yb, za);
-  }
+  double xa, xb, za, zb, a, b, th0, th1;
+  int segments = 5;
+  for (int i=0; i<number+1; ++i) {
+    if (i == 0){
+      a = 2 * slits[i] - slits[i+1] + slit_width/2;
+      b = slits[i] - slit_width/2;
+    } else if (i == number) {
+      a = slits[i - 1] + slit_width/2;
+      b = 2 * slits[i - 1] - slits[i - 2] - slit_width/2;
+    } else {
+      a = slits[i-1] + slit_width/2;
+      b = slits[i] - slit_width/2;
+    }
+    for (int j=0; j<segments; ++j) {
+      th0 = a + (b-a) * (double)j / (double)segments;
+      th1 = a + (b-a) * (double)(j+1) / (double)segments;
+      xa = radius * sin(th0);
+      xb = radius * sin(th1);
+      za = radius * cos(th0);
+      zb = radius * cos(th1);
+      multiline(2, xa, ya, za, xb, ya, zb);
+      multiline(2, xa, yb, za, xb, yb, zb);
+      if (j==0) multiline(2, xa, ya, za, xa, yb, za);
+      if (j+1 == segments) multiline(2, xb, ya, zb, xb, yb, zb);
+    }
+ }
 %}
 
 END
