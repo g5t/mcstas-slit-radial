@@ -24,7 +24,8 @@ SETTING PARAMETERS (
   slit_spacing=0,
   height=0,
   offset=0,
-  int slit=-1
+  int slit=-1,
+  vector positions = {100}
 )
 OUTPUT PARAMETERS ()
 SHARE 
@@ -48,8 +49,13 @@ INITIALIZE
   if (!slits)
     printf("Slit_radial_multi: %s: ERROR: Unable to allocate memory for slit centers\n", NAME_CURRENT_COMP);
     
-  for (int i=0; i<number; ++i){
-    slits[i] = fmod(offset + i * slit_spacing, 2*PI);
+  // Allow the slit center positions to be specified externally via a vector:
+  if (positions[0] < 2*PI && -2*PI < positions[0]){
+    for (int i=0; i<number; ++i) slits[i] = positions[i];
+  } else {    
+    for (int i=0; i<number; ++i){
+      slits[i] = fmod(offset + i * slit_spacing, 2*PI);
+    }
   }
 %}
 TRACE
