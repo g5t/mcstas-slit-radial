@@ -25,7 +25,7 @@ SETTING PARAMETERS (
   height=0,
   offset=0,
   int slit=-1,
-  vector positions = {100}
+  vector positions
 )
 OUTPUT PARAMETERS ()
 SHARE 
@@ -41,7 +41,8 @@ INITIALIZE
   if (height <= 0) printf("Slit_radial_multi: %s: ERROR: Positive height required!\n", NAME_CURRENT_COMP);
   if (radius <= 0) printf("Slit_radial_multi: %s: ERROR: Positive radius required!\n", NAME_CURRENT_COMP); 
   if (number < 1) number = 1;
-  if (slit_spacing <= 0 && number>1 && positions[0]==100) printf("Slit_radial_multi: %s: ERROR: Positive slit_spacing required for multiple slits!\n", NAME_CURRENT_COMP);  
+  if (slit_spacing <= 0 && number>1 && positions == NULL) 
+  	printf("Slit_radial_multi: %s: ERROR: Positive slit_spacing or specified slit positions required for multiple slits!\n", NAME_CURRENT_COMP);  
   
   
   slits = calloc((int)number, sizeof(double));
@@ -50,7 +51,7 @@ INITIALIZE
     printf("Slit_radial_multi: %s: ERROR: Unable to allocate memory for slit centers\n", NAME_CURRENT_COMP);
     
   // Allow the slit center positions to be specified externally via a vector:
-  if (positions[0] < 2*PI && -2*PI < positions[0]){
+  if (positions != NULL && positions[0] < 2*PI && -2*PI < positions[0]){
     for (int i=0; i<number; ++i) slits[i] = positions[i];
   } else {    
     for (int i=0; i<number; ++i){
